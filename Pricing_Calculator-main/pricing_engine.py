@@ -24,15 +24,25 @@ BACKUP_PRICES = {
     "None": 0,
 }
 
-# TODO: confirm with pricing team. New sheet "DC to DC Connectivity" lists
-# Basic firewall (20 Mbps) = 2765.21/month and Public IP (IPv4) = 1350/month.
-# Left unchanged until the unit (per Mbps vs flat) is confirmed.
+# Source: "DC to DC Connectivity" sheet. Basic firewall = 2765.20564 per month
+# for 20 Mbps. app.py charges FIREWALL_PRICES x Mbps, so the price is stored per
+# Mbps (assumes linear pricing; only the 20 Mbps data point exists).
+# TODO: confirm with the pricing team.
 FIREWALL_PRICES = {
     "None": 0,
-    "Basic": 62.677995,
+    "Basic": 2765.20564 / 20,
 }
 
-PUBLIC_IP_PRICE = 500  # per IP per month
+PUBLIC_IP_PRICE = 1350  # per IP per month (Excel: DC to DC Connectivity, IPv4)
+
+# The Excel guideline: hourly (ppu) prices are per hour, everything else is per
+# month. Quotes are monthly, so hourly VM prices are converted at 730 hours.
+HOURS_PER_MONTH = 730
+
+# The Excel's Vayu "RHEL for SAP" middle column is headed "Daily", not
+# "1 year Reserved" (a data error). Block that combination until the pricing
+# team corrects the Excel, then set this to False.
+BLOCK_RHEL_SAP_1YR = True
 
 VAYU_OS_OPTIONS = [
     "Linux",
@@ -65,10 +75,20 @@ def _missing(value):
     return value is None or pd.isna(value)
 
 
+def _monthly(price, pricing_tier):
+    """Hourly (ppu) prices -> monthly. Reserved prices are already monthly."""
+    if pricing_tier == "Hourly- ppu":
+        return price * HOURS_PER_MONTH
+    return price
+
+
 def calculate_vayu_price(flavour, os_type, pricing_tier, quantity,
                           storage_type, storage_gb,
                           backup_type, backup_gb,
                           firewall_type, public_ips):
+    if BLOCK_RHEL_SAP_1YR and os_type == "RHEL for SAP" and pricing_tier == "1 year Reserved":
+        return None
+
     row = get_vayu_row(flavour)
     if row is None:
         return None
@@ -78,6 +98,7 @@ def calculate_vayu_price(flavour, os_type, pricing_tier, quantity,
 
     if _missing(unit_vm_price):
         return None
+    unit_vm_price = _monthly(unit_vm_price, pricing_tier)
 
     # Storage cost
     storage_price_per_gb = STORAGE_PRICES.get(storage_type, 0)
@@ -125,6 +146,7 @@ def calculate_hana_price(flavour, os_type, pricing_tier, quantity,
 
     if _missing(unit_vm_price):
         return None
+    unit_vm_price = _monthly(unit_vm_price, pricing_tier)
 
     storage_price_per_gb = STORAGE_PRICES.get(storage_type, 0)
     storage_cost = storage_price_per_gb * storage_gb
@@ -159,6 +181,7 @@ def calculate_olvm_price(flavour, pricing_tier, quantity,
 
     if _missing(unit_vm_price):
         return None
+    unit_vm_price = _monthly(unit_vm_price, pricing_tier)
 
     storage_price_per_gb = STORAGE_PRICES.get(storage_type, 0)
     storage_cost = storage_price_per_gb * storage_gb
