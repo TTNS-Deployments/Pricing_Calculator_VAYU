@@ -57,22 +57,23 @@ INTERNET_BANDWIDTH_PRICE_PER_MBPS = 50  # INR per Mbps per month (from BOQ: 1GB 
 
 LICENSE_PRICES = {
     "None": 0,
-    "MS SQL - Standard (per 2 pCore)": 17877.83,
-    "MS SQL - Enterprise (per 2 pCore)": 67311.22,
-    "MS SQL - Web Edition (per 2 pCore)": 1118.06,
-    "MySQL - Standard (per vCore)": 17632.86,
-    "MySQL - Enterprise (per vCore)": 42318.84,
-    "PostgreSQL (per month)": 13888.41,
-    "Commvault Backup (per GB)": 4.35,
+    "MS SQL - Standard (per 2 pCore)": 26816.74,
+    "MS SQL - Enterprise (per 2 pCore)": 100966.83,
+    "MS SQL - Web Edition (per 2 pCore)": 1677.09,
+    "MySQL - Standard (per vCore)": 26449.28,
+    "MySQL - Enterprise (per vCore)": 63478.26,
+    "PostgreSQL (per month)": 20832.61,
+    "Commvault Backup (per GB)": 5.22,
+}
 }
 
 MANAGEMENT_PRICES = {
     "None": 0,
     "OS Management - Windows (per VM)": 500,
     "OS Management - Linux (per VM)": 500,
-    "DB Management - MSSQL (per DB)": 6500,
-    "DB Management - MySQL (per DB)": 8000,
-    "DB Management - PostgreSQL (per DB)": 8000,
+    "DB Management - MSSQL (per DB)": 9750,
+    "DB Management - MySQL (per DB)": 12000,
+    "DB Management - PostgreSQL (per DB)": 12000,
 }
 
 NETWORK_ELEMENT_OPTIONS = ["None", "Virtual Network", "Firewall - Basic", "Firewall - Standard", "Firewall - Advanced"]
@@ -90,7 +91,7 @@ COLOCATION_PRICES = {
     "Power (per KWH)": 100,
 }
 
-PUBLIC_IP_PRICE_CONNECTIVITY = 900  # from master file Connectivity sheet
+PUBLIC_IP_PRICE_CONNECTIVITY = 1350  # from master file Connectivity sheet
 
 
 # PAGE CONFIG
@@ -631,7 +632,7 @@ if "quote_items" not in st.session_state:
 
 user = st.session_state.user
 
-ADMIN_EMAIL = "vaibhav.chaudhary@tatatel.co.in"
+ADMIN_EMAIL = "Shreya.Shree@tatatel.co.in"
 is_admin = (st.session_state.user.get("email") or "").strip().lower() == ADMIN_EMAIL.strip().lower()
 
 nav_cols = st.columns([3, 1, 1, 1, 1, 1]) if is_admin else st.columns([3, 1, 1, 1, 1])
@@ -1292,9 +1293,9 @@ with st.expander("**💾 Backup Storage**", expanded=False):
     bk_cost = 0
     if bk_model != "None" and bk_qty > 0:
         bk_price_map = {
-            "Value Based": 1.826923,
-            "Resilient": 3.425481,
-            "Geo-Resilient": 3.882212,
+            "Value Based": 2.19,
+            "Resilient": 4.11,
+            "Geo-Resilient": 4.665,
         }
         bk_cost = bk_price_map.get(bk_model, 0) * bk_qty
     st.info(f"Estimated Backup Storage Cost: {format_inr(bk_cost)} / month")
@@ -1346,7 +1347,7 @@ with st.expander("**⚙️ Management Services**", expanded=False):
         st.markdown("**Management Type**")
         mg_element = st.selectbox(
             "Element",
-            ["None", "OS-Management", "DB Management", "Firewall Management"],
+         ["None", "OS-Management", "DB Management - MSSQL", "DB Management - MySQL", "DB Management - PostgreSQL", "Firewall Management"],
             key="mg_element"
         )
         mg_description = st.text_input(
@@ -1378,11 +1379,7 @@ with st.expander("**⚙️ Management Services**", expanded=False):
 
     mg_cost = 0
     if mg_element != "None" and mg_qty > 0:
-        mg_price_map = {
-            "OS-Management": 500,
-            "DB Management": 6500,
-            "Firewall Management": 2000,
-        }
+        mg_price_map = {"OS-Management": 500, "DB Management - MSSQL": 9750, "DB Management - MySQL": 12000, "DB Management - PostgreSQL": 12000, "Firewall Management": 2000}
         mg_cost = mg_price_map.get(mg_element, 0) * mg_qty
     st.info(f"Estimated Management Cost: {format_inr(mg_cost)} / month")
 
@@ -2234,7 +2231,7 @@ if st.session_state.quote_items:
         # ── Management ──
         elif edit_bucket == "Management":
             ec1, ec2 = st.columns(2)
-            mg_el_opts = ["None", "OS-Management", "DB Management", "Firewall Management"]
+            mg_el_opts = ["None", "OS-Management", "DB Management - MSSQL", "DB Management - MySQL", "DB Management - PostgreSQL", "Firewall Management"]
             mg_unit_opts = ["VM", "DB", "Firewall"]
             with ec1:
                 ed_mg_el = st.selectbox("Element", mg_el_opts,
