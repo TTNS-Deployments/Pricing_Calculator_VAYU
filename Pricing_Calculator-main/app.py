@@ -65,7 +65,6 @@ LICENSE_PRICES = {
     "PostgreSQL (per month)": 20832.61,
     "Commvault Backup (per GB)": 5.22,
 }
-}
 
 MANAGEMENT_PRICES = {
     "None": 0,
