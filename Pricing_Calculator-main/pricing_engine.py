@@ -1,27 +1,32 @@
+import pandas as pd
 from data_loader import get_vayu_row, get_hana_row, get_olvm_row
 
+# Updated from Training_data.xlsx -> "Storage price" sheet (Nov 2026)
 STORAGE_PRICES = {
-    "SSD-1": 3.4797582445857271,
-    "SSD-2": 5.667796610169491,
-    "SSD-3": 6.4241690669274956,
-    "SSD-4": 10.291525423728816,
-    "SSD-5": 10.706948444879158,
-    "NAS": 7.384615384615385,
-    "CIFS": 7.384615384615385,
-    "Single Site Value Tier": 0.93553460998399807,
-    "Dual Site Value Tier": 2.0442718811761531,
-    "Dual Site Resilience Tier": 2.2568610349099023,
-    "High Performance Object Storage": 3.0494031551821434,
+    "SSD-1": 4.17,
+    "SSD-2": 8.501695,
+    "SSD-3": 7.71,
+    "SSD-4": 15.437288,
+    "SSD-5": 12.855,
+    "NAS": 8.865,
+    "CIFS": 8.865,
+    "Single Site Value Tier": 1.125,
+    "Dual Site Value Tier": 2.46,
+    "Dual Site Resilience Tier": 2.715,
+    "High Performance Object Storage": 3.66,
 }
 
 BACKUP_PRICES = {
-    "Value Based": 1.826923076923078,
-    "Resilient": 3.4254807692307709,
-    "Geo-Resilient": 3.882211538461541,
-    "Commvault": 4.34887959569018,
+    "Value Based": 2.19,
+    "Resilient": 4.11,
+    "Geo-Resilient": 4.665,
+    "Commvault": 5.22,
     "None": 0,
 }
 
+# TODO: confirm with pricing team. New sheet "DC to DC Connectivity" lists
+# Basic firewall (20 Mbps) = 2765.21/month and Public IP (IPv4) = 1350/month.
+# Left unchanged until the unit (per Mbps vs flat) is confirmed.
 FIREWALL_PRICES = {
     "None": 0,
     "Basic": 62.677995,
@@ -55,6 +60,11 @@ PRICING_TIERS = [
 ]
 
 
+def _missing(value):
+    """True for None or NaN (pandas turns None into NaN in numeric columns)."""
+    return value is None or pd.isna(value)
+
+
 def calculate_vayu_price(flavour, os_type, pricing_tier, quantity,
                           storage_type, storage_gb,
                           backup_type, backup_gb,
@@ -66,7 +76,7 @@ def calculate_vayu_price(flavour, os_type, pricing_tier, quantity,
     key = f"{os_type}__{pricing_tier}"
     unit_vm_price = row.get(key, None)
 
-    if unit_vm_price is None:
+    if _missing(unit_vm_price):
         return None
 
     # Storage cost
@@ -113,7 +123,7 @@ def calculate_hana_price(flavour, os_type, pricing_tier, quantity,
     key = f"{os_type}__{pricing_tier}"
     unit_vm_price = row.get(key, None)
 
-    if unit_vm_price is None:
+    if _missing(unit_vm_price):
         return None
 
     storage_price_per_gb = STORAGE_PRICES.get(storage_type, 0)
@@ -147,7 +157,7 @@ def calculate_olvm_price(flavour, pricing_tier, quantity,
     key = f"Linux__{pricing_tier}"
     unit_vm_price = row.get(key, None)
 
-    if unit_vm_price is None:
+    if _missing(unit_vm_price):
         return None
 
     storage_price_per_gb = STORAGE_PRICES.get(storage_type, 0)
