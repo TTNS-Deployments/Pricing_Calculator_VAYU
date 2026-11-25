@@ -4,6 +4,12 @@ import streamlit as st
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "Training_data.xlsx")
 
+# Sheet names in the new Training_data.xlsx (matched ignoring leading/trailing spaces)
+VAYU_SHEET = "Cloud VM Price"
+HANA_SHEET = "Hana VM Price"
+OLVM_SHEET = "OLVM Price"
+
+# Column positions (0-based) in each sheet. Vayu is unchanged from the old layout.
 VAYU_OS_COLUMNS = {
     "Linux": {"Hourly- ppu": 6, "1 year Reserved": 7, "3 Year Reserved": 8},
     "Windows": {"Hourly- ppu": 9, "1 year Reserved": 10, "3 Year Reserved": 11},
@@ -14,21 +20,28 @@ VAYU_OS_COLUMNS = {
 }
 
 HANA_OS_COLUMNS = {
-    "Linux": {"Hourly- ppu": 6, "1 year Reserved": 7, "3 Year Reserved": 8},
-    "SUSE- Linux": {"Hourly- ppu": 12, "1 year Reserved": 13, "3 Year Reserved": 14},
-    "RHEL for SAP": {"Hourly- ppu": 21, "1 year Reserved": 22, "3 Year Reserved": 23},
+    "Linux": {"Hourly- ppu": 5, "1 year Reserved": 6, "3 Year Reserved": 7},
+    "SUSE- Linux": {"Hourly- ppu": 8, "1 year Reserved": 9, "3 Year Reserved": 10},
+    "RHEL for SAP": {"Hourly- ppu": 11, "1 year Reserved": 12, "3 Year Reserved": 13},
 }
 
 OLVM_OS_COLUMNS = {
-    "Linux": {"Hourly- ppu": 6, "1 year Reserved": 7, "3 Year Reserved": 8},
+    "Linux": {"Hourly- ppu": 5, "1 year Reserved": 6, "3 Year Reserved": 7},
 }
 
 
-# ── Load the file ONCE and cache it forever ──
+# ── Load each sheet ONCE and cache it ──
 @st.cache_data
-def _load_sheet():
-    """Reads the Excel file exactly once. Everything else uses this."""
-    return pd.read_excel(DATA_PATH, sheet_name="Sheet1", header=None)
+def _load_sheet(sheet_name):
+    """Reads one sheet exactly once. Matches the name ignoring stray spaces."""
+    xls = pd.ExcelFile(DATA_PATH)
+    match = [s for s in xls.sheet_names if s.strip().lower() == sheet_name.strip().lower()]
+    if not match:
+        raise ValueError(
+            f"Sheet '{sheet_name}' not found in {os.path.basename(DATA_PATH)}. "
+            f"Available sheets: {xls.sheet_names}"
+        )
+    return pd.read_excel(xls, sheet_name=match[0], header=None)
 
 
 def _parse_rows(df, service_type, os_columns):
@@ -54,17 +67,17 @@ def _parse_rows(df, service_type, os_columns):
 
 @st.cache_data
 def load_vayu_cloud():
-    return _parse_rows(_load_sheet(), "Vayu Cloud- Open Stack", VAYU_OS_COLUMNS)
+    return _parse_rows(_load_sheet(VAYU_SHEET), "Vayu Cloud- Open Stack", VAYU_OS_COLUMNS)
 
 
 @st.cache_data
 def load_hana_grid():
-    return _parse_rows(_load_sheet(), "HANA Grid", HANA_OS_COLUMNS)
+    return _parse_rows(_load_sheet(HANA_SHEET), "HANA Grid", HANA_OS_COLUMNS)
 
 
 @st.cache_data
 def load_olvm():
-    return _parse_rows(_load_sheet(), "OLVM", OLVM_OS_COLUMNS)
+    return _parse_rows(_load_sheet(OLVM_SHEET), "OLVM", OLVM_OS_COLUMNS)
 
 
 @st.cache_data
