@@ -40,9 +40,13 @@ PUBLIC_IP_PRICE = 1350  # per IP per month (Excel: DC to DC Connectivity, IPv4)
 HOURS_PER_MONTH = 730
 
 # The Excel's Vayu "RHEL for SAP" middle column is headed "Daily", not
-# "1 year Reserved" (a data error). Block that combination until the pricing
-# team corrects the Excel, then set this to False.
-BLOCK_RHEL_SAP_1YR = True
+# "1 year Reserved" (a data error: it holds hourly x 24.57). In the same sheet
+# every 1-year price is a fixed fraction of (hourly x 730): 0.816 for Linux,
+# Windows, SUSE and RHEL, and 0.81 for SLES for SAP. RHEL for SAP is also an SAP
+# licence, so its 1-year price is derived the same way as SLES for SAP (0.81).
+# If the Excel column is ever corrected, set RHEL_SAP_1YR_FROM_HOURLY = False.
+RHEL_SAP_1YR_FROM_HOURLY = True
+RHEL_SAP_1YR_FACTOR = 0.81
 
 VAYU_OS_OPTIONS = [
     "Linux",
@@ -86,15 +90,16 @@ def calculate_vayu_price(flavour, os_type, pricing_tier, quantity,
                           storage_type, storage_gb,
                           backup_type, backup_gb,
                           firewall_type, public_ips):
-    if BLOCK_RHEL_SAP_1YR and os_type == "RHEL for SAP" and pricing_tier == "1 year Reserved":
-        return None
-
     row = get_vayu_row(flavour)
     if row is None:
         return None
 
     key = f"{os_type}__{pricing_tier}"
     unit_vm_price = row.get(key, None)
+
+    if RHEL_SAP_1YR_FROM_HOURLY and os_type == "RHEL for SAP" and pricing_tier == "1 year Reserved":
+        hourly = row.get("RHEL for SAP__Hourly- ppu", None)
+        unit_vm_price = None if _missing(hourly) else hourly * HOURS_PER_MONTH * RHEL_SAP_1YR_FACTOR
 
     if _missing(unit_vm_price):
         return None
@@ -227,3 +232,4 @@ def get_flavour_specs(product, flavour):
         specs["Root Disk (GB)"] = int(row["Root Disk (GB)"])
 
     return specs
+
